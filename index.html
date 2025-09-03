@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Smart Tourist Safety System Demo</title>
+  <style>
+    /* Style for the map container */
+    #map {
+      height: 600px;
+      width: 100%;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      margin-top: 20px;
+    }
+    #status {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Smart Tourist Safety System</h1>
+  <div id="map"></div>
+
+  <button onclick="sendIncidentData()">Simulate Incident (Send Data to Server)</button>
+
+  <p id="status"></p>
+
+  <script>
+    let map;
+    let marker;
+    const statusElement = document.getElementById('status');
+
+    // This function initializes the Google Map.
+    function initMap() {
+      // Create a default map centered on a general location.
+      map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 21.1702, lng: 72.8311 }, // Default to Surat, Gujarat, India
+        zoom: 12,
+      });
+
+      // Try to get the user's current location.
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const pos = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            };
+            map.setCenter(pos); // Center the map on the user's location
+            
+            // Add a marker for the tourist's location
+            marker = new google.maps.Marker({
+              position: pos,
+              map: map,
+              title: "My Location",
+            });
+
+            statusElement.textContent = "Live location updated successfully.";
+
+          },
+          () => {
+            // Handle cases where geolocation fails or is denied
+            statusElement.textContent = "Geolocation failed. Displaying default location.";
+          }
+        );
+      } else {
+        // Browser doesn't support Geolocation
+        statusElement.textContent = "Your browser does not support Geolocation.";
+      }
+    }
+
+    // This function simulates sending data to a server.
+    function sendIncidentData() {
+      if (!marker) {
+        statusElement.textContent = "Please wait for location to load before sending data.";
+        return;
+      }
+
+      const locationData = {
+        latitude: marker.getPosition().lat(),
+        longitude: marker.getPosition().lng(),
+      };
+      
+      const incidentPayload = {
+        tourist_id: "T-0123", // Example Digital ID
+        location: locationData,
+        incident_type: "Possible landslide near tourist",
+        timestamp: new Date().toISOString()
+      };
+
+      statusElement.textContent = "Sending incident data to the server...";
+
+      // *** This is the code for the backend process you will explain in your PPT ***
+      // We are using a fake URL to show the concept.
+      // In a real project, this would send data to your actual server.
+      
+      // The `fetch` API is a standard way to send data in JavaScript.
+      fetch('https://your-hackathon-server.com/api/incident-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(incidentPayload),
+      })
+      .then(response => {
+        // In a real scenario, you'd check the server response
+        statusElement.textContent = 'Data sent successfully! The AI is now processing it.';
+        console.log('Successfully sent payload:', incidentPayload);
+
+        // This is where you can add a visual cue for the next step in your demo
+        setTimeout(() => {
+          statusElement.textContent = 'AI processed the data. Notifying security authorities!';
+        }, 2000); // Wait 2 seconds to simulate processing
+      })
+      .catch((error) => {
+        // This will happen because the URL is fake, but it demonstrates error handling
+        statusElement.textContent = 'Simulated data send failed. (This is expected for the demo)';
+        console.error('Error:', error);
+      });
+    }
+  </script>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA4GcR9U9UMveVo9plR1tYki2ZhKoMmfEc&callback=initMap" defer></script>
+
+</body>
+</html>
