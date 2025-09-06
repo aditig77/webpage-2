@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>Smart Tourist Safety System Demo</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     /* Style for the map container */
     #map {
@@ -34,106 +35,74 @@
   <h1>Smart Tourist Safety System</h1>
   <div id="map"></div>
 
-  <button onclick="sendIncidentData()">Simulate Incident (Send Data to Server)</button>
+ <button onclick="sendIncidentData()">Simulate Incident (Send Data to Server)</button>
 
-  <p id="status"></p>
+  <p id="status">Waiting for live location...</p>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- ✅ Firebase v8 SDK (works with initializeApp + database()) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
   <script>
-    let map;
-    let marker;
-    const statusElement = document.getElementById('status');
+    // ✅ Same Firebase config as Page 1
+    const firebaseConfig = {
+      apiKey: "AIzaSyCMNY0CCsEGBkdD1HBM-Rs31ASdFJ9Qv18",
+      authDomain: "smart-tourist-safety-system.firebaseapp.com",
+      databaseURL: "https://smart-tourist-safety-system-default-rtdb.firebaseio.com",
+      projectId: "smart-tourist-safety-system",
+      storageBucket: "smart-tourist-safety-system.firebasestorage.app",
+      messagingSenderId: "907315597836",
+      appId: "1:907315597836:web:e3fb661ee819d47484d429",
+      measurementId: "G-EB4KF0Q2E0"
+    };
 
-    // This function initializes the Google Map.
-    function initMap() {
-      // Create a default map centered on a general location.
-      map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 21.1702, lng: 72.8311 }, // Default to Surat, Gujarat, India
-        zoom: 12,
-      });
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-      // Try to get the user's current location.
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const pos = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            };
-            map.setCenter(pos); // Center the map on the user's location
-            
-            // Add a marker for the tourist's location
-            marker = new google.maps.Marker({
-              position: pos,
-              map: map,
-              title: "My Location",
-            });
+    // ✅ Initialize Leaflet map
+    const map = L.map('map').setView([20.5937, 78.9629], 5); // Center on India
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-            statusElement.textContent = "Live location updated successfully.";
+    // Store markers for multiple tourists
+    const markers = {};
 
-          },
-          () => {
-            // Handle cases where geolocation fails or is denied
-            statusElement.textContent = "Geolocation failed. Displaying default location.";
+    // ✅ Listen for all tourists’ updates
+    db.ref('tourists').on('value', function(snapshot) {
+      const data = snapshot.val();
+      if (!data) return;
+
+      for (let id in data) {
+        const t = data[id];
+        if (t.latitude && t.longitude) {
+          if (!markers[id]) {
+            // New tourist → add marker
+            markers[id] = L.marker([t.latitude, t.longitude])
+              .addTo(map)
+              .bindPopup(`Tourist: ${id}`);
+          } else {
+            // Existing tourist → update position
+            markers[id].setLatLng([t.latitude, t.longitude]);
           }
-        );
-      } else {
-        // Browser doesn't support Geolocation
-        statusElement.textContent = "Your browser does not support Geolocation.";
+        }
       }
-    }
+      document.getElementById("status").innerText = "✅ Live locations updated";
+    });
 
-    // This function simulates sending data to a server.
+    // Dummy button to simulate sending incident data
     function sendIncidentData() {
-      if (!marker) {
-        statusElement.textContent = "Please wait for location to load before sending data.";
-        return;
-      }
-
-      const locationData = {
-        latitude: marker.getPosition().lat(),
-        longitude: marker.getPosition().lng(),
-      };
-      
-      const incidentPayload = {
-        tourist_id: "T-0123", // Example Digital ID
-        location: locationData,
-        incident_type: "Possible landslide near tourist",
-        timestamp: new Date().toISOString()
-      };
-
-      statusElement.textContent = "Sending incident data to the server...";
-
-      // *** This is the code for the backend process you will explain in your PPT ***
-      // We are using a fake URL to show the concept.
-      // In a real project, this would send data to your actual server.
-      
-      // The `fetch` API is a standard way to send data in JavaScript.
-      fetch('https://your-hackathon-server.com/api/incident-report', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(incidentPayload),
-      })
-      .then(response => {
-        // In a real scenario, you'd check the server response
-        statusElement.textContent = 'Data sent successfully! The AI is now processing it.';
-        console.log('Successfully sent payload:', incidentPayload);
-
-        // This is where you can add a visual cue for the next step in your demo
-        setTimeout(() => {
-          statusElement.textContent = 'AI processed the data. Notifying security authorities!';
-        }, 2000); // Wait 2 seconds to simulate processing
-      })
-      .catch((error) => {
-        // This will happen because the URL is fake, but it demonstrates error handling
-        statusElement.textContent = 'Simulated data send failed. (This is expected for the demo)';
-        console.error('Error:', error);
+      db.ref("incidents").push({
+        type: "Simulated Incident",
+        timestamp: Date.now()
       });
+      alert("Incident data sent!");
     }
   </script>
-
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA4GcR9U9UMveVo9plR1tYki2ZhKoMmfEc&callback=initMap" defer></script>
-
 </body>
 </html>
+
+ 
